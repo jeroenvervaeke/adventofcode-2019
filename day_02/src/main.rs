@@ -1,7 +1,28 @@
 use std::error::Error;
+use std::fs::File;
+use std::io::{BufRead, BufReader};
 
 fn main() -> Result<(), Box<dyn Error>> {
-    println!("Day 2 boilerplate");
+    let file = File::open("day_02/input.txt")?;
+    let mut reader = BufReader::new(file);
+
+    let mut line = String::new();
+    reader.read_line(&mut line)?;
+
+    let mut intcode: Vec<u32> = line
+        .trim()
+        .split(',')
+        .map(|digit_str| digit_str.parse::<u32>().expect("Invalid input file"))
+        .collect();
+
+    intcode[1] = 12;
+    intcode[2] = 2;
+
+    println!("Before: {:?}", intcode);
+    run_intcode(intcode.as_mut_slice())?;
+    println!("After: {:?}", intcode);
+
+    println!("Solution: {:?}", intcode[0]);
 
     Ok(())
 }
