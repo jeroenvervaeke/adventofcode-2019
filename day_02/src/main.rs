@@ -8,26 +8,61 @@ fn main() -> Result<(), Box<dyn Error>> {
 
 #[derive(Debug, PartialEq)]
 enum Op {
-    Add { idx1: u32, idx2: u32, dst: u32 },
-    Multiply { idx1: u32, idx2: u32, dst: u32 },
+    Add {
+        idx1: usize,
+        idx2: usize,
+        dst: usize,
+    },
+    Multiply {
+        idx1: usize,
+        idx2: usize,
+        dst: usize,
+    },
     Exit,
+}
+
+impl Op {
+    fn op_len(&self) -> usize {
+        match self {
+            Op::Add { .. } | Op::Multiply { .. } => 4,
+            Op::Exit => 1,
+        }
+    }
 }
 
 fn parse_opcode(current: &[u32]) -> Option<Op> {
     match current {
         [1, idx1, idx2, dst, ..] => Some(Op::Add {
-            idx1: *idx1,
-            idx2: *idx2,
-            dst: *dst,
+            idx1: *idx1 as usize,
+            idx2: *idx2 as usize,
+            dst: *dst as usize,
         }),
         [2, idx1, idx2, dst, ..] => Some(Op::Multiply {
-            idx1: *idx1,
-            idx2: *idx2,
-            dst: *dst,
+            idx1: *idx1 as usize,
+            idx2: *idx2 as usize,
+            dst: *dst as usize,
         }),
         [99, ..] => Some(Op::Exit),
         _ => None,
     }
+}
+
+fn run_intcode(memory: &mut [u32]) -> Result<(), &str> {
+    let mut idx = 0;
+
+    loop {
+        let op_code = parse_opcode(&memory[idx..]).ok_or("Invalid OP code")?;
+
+        match op_code {
+            Op::Add { idx1, idx2, dst } => memory[dst] = memory[idx1] + memory[idx2],
+            Op::Multiply { idx1, idx2, dst } => memory[dst] = memory[idx1] * memory[idx2],
+            Op::Exit => break,
+        }
+
+        idx += op_code.op_len();
+    }
+
+    Ok(())
 }
 
 #[cfg(test)]
@@ -116,5 +151,55 @@ mod tests {
         let op = parse_opcode(&opcodes);
 
         assert_eq!(op, Some(Op::Exit));
+    }
+
+    #[test]
+    fn run_example_explained_in_text() {
+        let mut memory = [1, 9, 10, 3, 2, 3, 11, 0, 99, 30, 40, 50];
+
+        let result = run_intcode(&mut memory);
+
+        assert_eq!(result.is_ok(), true);
+        assert_eq!(memory, [3500, 9, 10, 70, 2, 3, 11, 0, 99, 30, 40, 50]);
+    }
+
+    #[test]
+    fn run_example_short_1() {
+        let mut memory = [1, 0, 0, 0, 99];
+
+        let result = run_intcode(&mut memory);
+
+        assert_eq!(result.is_ok(), true);
+        assert_eq!(memory, [2, 0, 0, 0, 99]);
+    }
+
+    #[test]
+    fn run_example_short_2() {
+        let mut memory = [2, 3, 0, 3, 99];
+
+        let result = run_intcode(&mut memory);
+
+        assert_eq!(result.is_ok(), true);
+        assert_eq!(memory, [2, 3, 0, 6, 99]);
+    }
+
+    #[test]
+    fn run_example_short_3() {
+        let mut memory = [2, 4, 4, 5, 99, 0];
+
+        let result = run_intcode(&mut memory);
+
+        assert_eq!(result.is_ok(), true);
+        assert_eq!(memory, [2, 4, 4, 5, 99, 9801]);
+    }
+
+    #[test]
+    fn run_example_short_4() {
+        let mut memory = [1, 1, 1, 4, 99, 5, 6, 0, 99];
+
+        let result = run_intcode(&mut memory);
+
+        assert_eq!(result.is_ok(), true);
+        assert_eq!(memory, [30, 1, 1, 4, 2, 5, 6, 0, 99]);
     }
 }
