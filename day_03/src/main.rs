@@ -16,16 +16,31 @@ fn main() -> Result<(), Box<dyn Error>> {
     reader.read_line(&mut line)?;
     let directions_2 = parse_direction_str(line.trim()).map_err(|_| "path 2 is incorrect")?;
 
-    let distance = closest_intersection_distance(&directions_1, &directions_2);
-    println!("Distance: {}", distance);
+    let distance = closest_intersection_distance(&directions_1, &directions_2, manhattan);
+    println!("Manhattan distance: {}", distance);
+
+    let distance = closest_intersection_distance(&directions_1, &directions_2, signal_distance);
+    println!("Signal delay: {}", distance);
 
     Ok(())
 }
 
-fn closest_intersection_distance(
+fn manhattan(coordinate: &Coordinate, _: &Vec<Line>, _: &Vec<Line>) -> i32 {
+    coordinate.x.abs() + coordinate.y.abs()
+}
+
+fn signal_distance(coordinate: &Coordinate, line_1: &Vec<Line>, line_2: &Vec<Line>) -> i32 {
+    line_1.signal_distance(coordinate) + line_2.signal_distance(coordinate)
+}
+
+fn closest_intersection_distance<F>(
     directions_path_1: &Vec<Direction>,
     directions_path_2: &Vec<Direction>,
-) -> i32 {
+    distance_function: F,
+) -> i32
+where
+    F: Fn(&Coordinate, &Vec<Line>, &Vec<Line>) -> i32,
+{
     let path_coordinates_1 = to_coordinates(&directions_path_1);
     let path_coordinates_2 = to_coordinates(&directions_path_2);
 
@@ -44,12 +59,12 @@ fn closest_intersection_distance(
         }
     }
 
-    intersections.sort_by_cached_key(|coordinate| coordinate.x.abs() + coordinate.y.abs());
+    intersections.sort_by_cached_key(|coordinate| distance_function(coordinate, &path_1, &path_2));
 
     let closest_intersection = intersections
         .first()
         .expect("There is always at least one intersection");
-    let manhattan_distance = closest_intersection.x.abs() + closest_intersection.y.abs();
+    let manhattan_distance = distance_function(closest_intersection, &path_1, &path_2);
 
     manhattan_distance
 }
@@ -159,6 +174,50 @@ impl Line {
             None
         }
     }
+
+    fn contains(&self, coordinate: &Coordinate) -> bool {
+        let (x_min, x_max) = if self.p1.x < self.p2.x {
+            (self.p1.x, self.p2.x)
+        } else {
+            (self.p2.x, self.p1.x)
+        };
+
+        let (y_min, y_max) = if self.p1.y < self.p2.y {
+            (self.p1.y, self.p2.y)
+        } else {
+            (self.p2.y, self.p1.y)
+        };
+
+        match self.alignment() {
+            Alignment::Horizontal => {
+                coordinate.x <= x_max && coordinate.x >= x_min && coordinate.y == y_min
+            }
+            Alignment::Vertical => {
+                coordinate.y <= y_max && coordinate.y >= y_min && coordinate.x == x_min
+            }
+        }
+    }
+
+    fn len(&self) -> i32 {
+        match self.alignment() {
+            Alignment::Horizontal => {
+                let (min, max) = min_max(self.p1.x, self.p2.x);
+                max - min
+            }
+            Alignment::Vertical => {
+                let (min, max) = min_max(self.p1.y, self.p2.y);
+                max - min
+            }
+        }
+    }
+}
+
+fn min_max(v1: i32, v2: i32) -> (i32, i32) {
+    if v1 < v2 {
+        (v1, v2)
+    } else {
+        (v2, v1)
+    }
 }
 
 #[derive(Debug, PartialEq)]
@@ -207,6 +266,28 @@ fn parse_direction_str(s: &str) -> Result<Vec<Direction>, ()> {
     }
 
     Ok(result)
+}
+
+trait SignalDistance {
+    fn signal_distance(&self, coordinate: &Coordinate) -> i32;
+}
+
+impl SignalDistance for Vec<Line> {
+    fn signal_distance(&self, coordinate: &Coordinate) -> i32 {
+        let mut sum = 0;
+
+        for line in self {
+            if line.contains(coordinate) {
+                let partial = Line::new(line.p1.clone(), coordinate.clone());
+                sum += partial.len();
+                break;
+            } else {
+                sum += line.len();
+            }
+        }
+
+        return sum;
+    }
 }
 
 #[cfg(test)]
@@ -316,7 +397,8 @@ mod tests {
         let directions_2 = parse_direction_str("U7,R6,D4,L4")
             .expect("directions_2 contains an invalid direction!");
 
-        let calculated_distance = closest_intersection_distance(&directions_1, &directions_2);
+        let calculated_distance =
+            closest_intersection_distance(&directions_1, &directions_2, manhattan);
 
         assert_eq!(calculated_distance, 6);
     }
@@ -328,7 +410,8 @@ mod tests {
         let directions_2 = parse_direction_str("U62,R66,U55,R34,D71,R55,D58,R83")
             .expect("directions_2 contains an invalid direction!");
 
-        let calculated_distance = closest_intersection_distance(&directions_1, &directions_2);
+        let calculated_distance =
+            closest_intersection_distance(&directions_1, &directions_2, manhattan);
 
         assert_eq!(calculated_distance, 159);
     }
@@ -340,8 +423,35 @@ mod tests {
         let directions_2 = parse_direction_str("U98,R91,D20,R16,D67,R40,U7,R15,U6,R7")
             .expect("directions_2 contains an invalid direction!");
 
-        let calculated_distance = closest_intersection_distance(&directions_1, &directions_2);
+        let calculated_distance =
+            closest_intersection_distance(&directions_1, &directions_2, manhattan);
 
         assert_eq!(calculated_distance, 135);
+    }
+
+    #[test]
+    fn part2_example_1() {
+        let directions_1 = parse_direction_str("R75,D30,R83,U83,L12,D49,R71,U7,L72")
+            .expect("directions_1 contains an invalid direction!");
+        let directions_2 = parse_direction_str("U62,R66,U55,R34,D71,R55,D58,R83")
+            .expect("directions_2 contains an invalid direction!");
+
+        let calculated_distance =
+            closest_intersection_distance(&directions_1, &directions_2, signal_distance);
+
+        assert_eq!(calculated_distance, 610);
+    }
+
+    #[test]
+    fn part2_example_2() {
+        let directions_1 = parse_direction_str("R98,U47,R26,D63,R33,U87,L62,D20,R33,U53,R51")
+            .expect("directions_1 contains an invalid direction!");
+        let directions_2 = parse_direction_str("U98,R91,D20,R16,D67,R40,U7,R15,U6,R7")
+            .expect("directions_2 contains an invalid direction!");
+
+        let calculated_distance =
+            closest_intersection_distance(&directions_1, &directions_2, signal_distance);
+
+        assert_eq!(calculated_distance, 410);
     }
 }
