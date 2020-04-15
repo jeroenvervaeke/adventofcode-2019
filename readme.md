@@ -1,3 +1,9 @@
 # Advent of code 2019
 
-My attempt to solve all puzzles of the event of code using rust
+My attempt to solve all puzzles of the advent of code using rust
+
+
+
+
+
+Status: 8 :star:
