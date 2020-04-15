@@ -9,22 +9,45 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut line = String::new();
     reader.read_line(&mut line)?;
 
-    let mut intcode: Vec<u32> = line
+    let intcode: Vec<u32> = line
         .trim()
         .split(',')
         .map(|digit_str| digit_str.parse::<u32>().expect("Invalid input file"))
         .collect();
 
-    intcode[1] = 12;
-    intcode[2] = 2;
+    let result_part_1 = run_part(&intcode, 12, 2)?;
+    println!("Part 1: {}", result_part_1);
 
-    println!("Before: {:?}", intcode);
-    run_intcode(intcode.as_mut_slice())?;
-    println!("After: {:?}", intcode);
+    let desired_result = 19690720;
 
-    println!("Solution: {:?}", intcode[0]);
+    let mut result_part_2 = None;
+
+    for noun in 0..100 {
+        for verb in 0..100 {
+            let result = run_part(&intcode, noun, verb)?;
+
+            if result == desired_result {
+                result_part_2 = Some((noun, verb))
+            }
+        }
+    }
+
+    match result_part_2 {
+        Some((noun, verb)) => println!("Part 2: Noun={}, Verb={}", noun, verb),
+        None => println!("Part 2: No result found"),
+    }
 
     Ok(())
+}
+
+fn run_part(intcode: &Vec<u32>, noun: u32, verb: u32) -> Result<u32, Box<dyn Error>> {
+    let mut memory = intcode.clone();
+    memory[1] = noun;
+    memory[2] = verb;
+
+    run_intcode(memory.as_mut_slice())?;
+
+    Ok(memory[0])
 }
 
 #[derive(Debug, PartialEq)]
