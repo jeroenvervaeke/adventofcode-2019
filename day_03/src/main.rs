@@ -151,18 +151,10 @@ impl Line {
         };
 
         let horizontal_y = horizontal.p1.y;
-        let (horizontal_x_min, horizontal_x_max) = if horizontal.p1.x < horizontal.p2.x {
-            (horizontal.p1.x, horizontal.p2.x)
-        } else {
-            (horizontal.p2.x, horizontal.p1.x)
-        };
+        let (horizontal_x_min, horizontal_x_max) = min_max(horizontal.p1.x, horizontal.p2.x);
 
         let vertical_x = vertical.p1.x;
-        let (vertical_y_min, vertical_y_max) = if vertical.p1.y < vertical.p2.y {
-            (vertical.p1.y, vertical.p2.y)
-        } else {
-            (vertical.p2.y, vertical.p1.y)
-        };
+        let (vertical_y_min, vertical_y_max) = min_max(vertical.p1.y, vertical.p2.y);
 
         if horizontal_y <= vertical_y_max
             && horizontal_y >= vertical_y_min
@@ -176,17 +168,8 @@ impl Line {
     }
 
     fn contains(&self, coordinate: &Coordinate) -> bool {
-        let (x_min, x_max) = if self.p1.x < self.p2.x {
-            (self.p1.x, self.p2.x)
-        } else {
-            (self.p2.x, self.p1.x)
-        };
-
-        let (y_min, y_max) = if self.p1.y < self.p2.y {
-            (self.p1.y, self.p2.y)
-        } else {
-            (self.p2.y, self.p1.y)
-        };
+        let (x_min, x_max) = min_max(self.p1.x, self.p2.x);
+        let (y_min, y_max) = min_max(self.p1.y, self.p2.y);
 
         match self.alignment() {
             Alignment::Horizontal => {
