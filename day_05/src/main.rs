@@ -2,6 +2,11 @@ use std::error::Error;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 
+mod operations;
+
+use operations::Operation;
+use std::borrow::Cow;
+
 fn main() -> Result<(), Box<dyn Error>> {
     let file = File::open("day_05/input.txt")?;
     let mut reader = BufReader::new(file);
@@ -21,57 +26,31 @@ fn main() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-#[derive(Debug, PartialEq)]
-enum Op {
-    Add {
-        idx1: usize,
-        idx2: usize,
-        dst: usize,
-    },
-    Multiply {
-        idx1: usize,
-        idx2: usize,
-        dst: usize,
-    },
-    Exit,
-}
-
-impl Op {
-    fn op_len(&self) -> usize {
-        match self {
-            Op::Add { .. } | Op::Multiply { .. } => 4,
-            Op::Exit => 1,
-        }
-    }
-}
-
-fn parse_opcode(current: &[i32]) -> Option<Op> {
-    match current {
-        [1, idx1, idx2, dst, ..] => Some(Op::Add {
-            idx1: *idx1 as usize,
-            idx2: *idx2 as usize,
-            dst: *dst as usize,
-        }),
-        [2, idx1, idx2, dst, ..] => Some(Op::Multiply {
-            idx1: *idx1 as usize,
-            idx2: *idx2 as usize,
-            dst: *dst as usize,
-        }),
-        [99, ..] => Some(Op::Exit),
-        _ => None,
-    }
-}
-
-fn run_intcode(memory: &mut [i32]) -> Result<(), &str> {
+fn run_intcode(memory: &mut [i32]) -> Result<(), Cow<'static, str>> {
     let mut idx = 0;
 
     loop {
-        let op_code = parse_opcode(&memory[idx..]).ok_or("Invalid OP code")?;
+        let op_code = Operation::from_slice(&memory[idx..])?;
 
-        match op_code {
-            Op::Add { idx1, idx2, dst } => memory[dst] = memory[idx1] + memory[idx2],
-            Op::Multiply { idx1, idx2, dst } => memory[dst] = memory[idx1] * memory[idx2],
-            Op::Exit => break,
+        match &op_code {
+            Operation::Add {
+                addend_1,
+                addend_2,
+                destination,
+            } => {
+                let result = addend_1.materialize(memory) + addend_2.materialize(memory);
+                destination.store(memory, result);
+            }
+            Operation::Multiply {
+                factor_1,
+                factor_2,
+                destination,
+            } => {
+                let result = factor_1.materialize(memory) * factor_2.materialize(memory);
+                destination.store(memory, result);
+            }
+            Operation::Exit => break,
+            _ => unimplemented!(),
         }
 
         idx += op_code.op_len();
@@ -83,90 +62,6 @@ fn run_intcode(memory: &mut [i32]) -> Result<(), &str> {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn parse_add_exact() {
-        let opcodes = [1, 2, 3, 4];
-        let op = parse_opcode(&opcodes);
-
-        assert_eq!(
-            op,
-            Some(Op::Add {
-                idx1: 2,
-                idx2: 3,
-                dst: 4
-            })
-        );
-    }
-
-    #[test]
-    fn parse_add_trailing() {
-        let opcodes = [1, 2, 3, 4, 5, 6];
-        let op = parse_opcode(&opcodes);
-
-        assert_eq!(
-            op,
-            Some(Op::Add {
-                idx1: 2,
-                idx2: 3,
-                dst: 4
-            })
-        );
-    }
-
-    #[test]
-    fn parse_add_too_short() {
-        let opcodes = [1, 2, 3];
-        let op = parse_opcode(&opcodes);
-
-        assert_eq!(op, None);
-    }
-
-    #[test]
-    fn parse_multiply_exact() {
-        let opcodes = [2, 3, 4, 5];
-        let op = parse_opcode(&opcodes);
-
-        assert_eq!(
-            op,
-            Some(Op::Multiply {
-                idx1: 3,
-                idx2: 4,
-                dst: 5
-            })
-        );
-    }
-
-    #[test]
-    fn parse_multiply_trailing() {
-        let opcodes = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
-        let op = parse_opcode(&opcodes);
-
-        assert_eq!(
-            op,
-            Some(Op::Multiply {
-                idx1: 3,
-                idx2: 4,
-                dst: 5
-            })
-        );
-    }
-
-    #[test]
-    fn parse_exit_exact() {
-        let opcodes = [99];
-        let op = parse_opcode(&opcodes);
-
-        assert_eq!(op, Some(Op::Exit));
-    }
-
-    #[test]
-    fn parse_exit_trailing() {
-        let opcodes = [99, 100];
-        let op = parse_opcode(&opcodes);
-
-        assert_eq!(op, Some(Op::Exit));
-    }
 
     #[test]
     fn run_example_explained_in_text() {
