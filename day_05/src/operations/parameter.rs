@@ -6,22 +6,6 @@ pub enum Parameter {
     Value(i32),
 }
 
-impl Parameter {
-    pub fn materialize(&self, memory: &[i32]) -> i32 {
-        match self {
-            Parameter::Address(idx) => memory[*idx],
-            Parameter::Value(value) => *value,
-        }
-    }
-
-    pub fn store(&self, memory: &mut [i32], value: i32) {
-        match self {
-            Parameter::Address(idx) => memory[*idx] = value,
-            Parameter::Value(_) => { /* NOP, might change this to an error later */ }
-        }
-    }
-}
-
 pub trait ToParameter {
     fn to_parameter(&self, mode: &ParameterMode) -> Parameter;
 }
