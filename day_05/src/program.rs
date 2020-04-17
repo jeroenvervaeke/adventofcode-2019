@@ -1,13 +1,31 @@
-use super::{operations::Parameter, Operation};
+use super::{
+    io::{LineReader, LineWriter, UnitTestInput, UnitTestOutput},
+    operations::Parameter,
+    Operation,
+};
 use std::borrow::Cow;
 
-pub struct Program {
+pub struct Program<Input, Output>
+where
+    Input: LineReader,
+    Output: LineWriter,
+{
     memory: Vec<i32>,
+    input: Input,
+    output: Output,
 }
 
-impl Program {
-    pub fn new(memory: Vec<i32>) -> Self {
-        Self { memory }
+impl<Input, Output> Program<Input, Output>
+where
+    Input: LineReader,
+    Output: LineWriter,
+{
+    pub fn new(memory: Vec<i32>, input: Input, output: Output) -> Self {
+        Self {
+            input,
+            memory,
+            output,
+        }
     }
 
     pub fn run(&mut self) -> Result<(), Cow<'static, str>> {
@@ -34,7 +52,14 @@ impl Program {
                     self.store(destination, result);
                 }
                 Operation::Exit => break,
-                _ => unimplemented!(),
+                Operation::Input { destination } => {
+                    let value = self.input.read_line();
+                    self.store(destination, value)
+                }
+                Operation::Output { source } => {
+                    let value = self.load(source);
+                    self.output.write_line(value);
+                }
             }
 
             idx += op_code.op_len();
@@ -62,9 +87,21 @@ impl Program {
 mod tests {
     use super::*;
 
+    fn null_input_and_output() -> (UnitTestInput, UnitTestOutput) {
+        (
+            UnitTestInput::new(Vec::new()),
+            UnitTestOutput::new(Vec::new()),
+        )
+    }
+
     #[test]
     fn day_02_run_example_explained_in_text() {
-        let mut program = Program::new(vec![1, 9, 10, 3, 2, 3, 11, 0, 99, 30, 40, 50]);
+        let (input, output) = null_input_and_output();
+        let mut program = Program::new(
+            vec![1, 9, 10, 3, 2, 3, 11, 0, 99, 30, 40, 50],
+            input,
+            output,
+        );
         let result = program.run();
 
         assert_eq!(result.is_ok(), true);
@@ -76,7 +113,8 @@ mod tests {
 
     #[test]
     fn day_02_run_example_short_1() {
-        let mut program = Program::new(vec![1, 0, 0, 0, 99]);
+        let (input, output) = null_input_and_output();
+        let mut program = Program::new(vec![1, 0, 0, 0, 99], input, output);
         let result = program.run();
 
         assert_eq!(result.is_ok(), true);
@@ -85,7 +123,8 @@ mod tests {
 
     #[test]
     fn day_02_run_example_short_2() {
-        let mut program = Program::new(vec![2, 3, 0, 3, 99]);
+        let (input, output) = null_input_and_output();
+        let mut program = Program::new(vec![2, 3, 0, 3, 99], input, output);
         let result = program.run();
 
         assert_eq!(result.is_ok(), true);
@@ -94,7 +133,8 @@ mod tests {
 
     #[test]
     fn day_02_run_example_short_3() {
-        let mut program = Program::new(vec![2, 4, 4, 5, 99, 0]);
+        let (input, output) = null_input_and_output();
+        let mut program = Program::new(vec![2, 4, 4, 5, 99, 0], input, output);
         let result = program.run();
 
         assert_eq!(result.is_ok(), true);
@@ -103,7 +143,8 @@ mod tests {
 
     #[test]
     fn day_02_run_example_short_4() {
-        let mut program = Program::new(vec![1, 1, 1, 4, 99, 5, 6, 0, 99]);
+        let (input, output) = null_input_and_output();
+        let mut program = Program::new(vec![1, 1, 1, 4, 99, 5, 6, 0, 99], input, output);
         let result = program.run();
 
         assert_eq!(result.is_ok(), true);

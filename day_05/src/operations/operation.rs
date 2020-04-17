@@ -1,4 +1,4 @@
-use super::{OpCode, Parameter, ToParameter};
+use super::{OpCode, Parameter, ParameterMode, ToParameter};
 use std::borrow::Cow;
 use std::convert::TryInto;
 
@@ -43,7 +43,7 @@ impl Operation {
             ) => Ok(Operation::Add {
                 addend_1: addend_1.to_parameter(&mode.parameter_1),
                 addend_2: addend_2.to_parameter(&mode.parameter_2),
-                destination: destination.to_parameter(&mode.parameter_3),
+                destination: destination.to_parameter(&ParameterMode::Position),
             }),
             (
                 OpCode {
@@ -54,16 +54,10 @@ impl Operation {
             ) => Ok(Operation::Multiply {
                 factor_1: factor_1.to_parameter(&mode.parameter_1),
                 factor_2: factor_2.to_parameter(&mode.parameter_2),
-                destination: destination.to_parameter(&mode.parameter_3),
+                destination: destination.to_parameter(&ParameterMode::Position),
             }),
-            (
-                OpCode {
-                    operation: 3,
-                    ref mode,
-                },
-                [destination, ..],
-            ) => Ok(Operation::Input {
-                destination: destination.to_parameter(&mode.parameter_1),
+            (OpCode { operation: 3, .. }, [destination, ..]) => Ok(Operation::Input {
+                destination: destination.to_parameter(&ParameterMode::Position),
             }),
             (
                 OpCode {
