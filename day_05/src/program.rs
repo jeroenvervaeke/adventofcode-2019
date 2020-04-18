@@ -152,4 +152,26 @@ mod tests {
         assert_eq!(result.is_ok(), true);
         assert_eq!(program.memory, [30, 1, 1, 4, 2, 5, 6, 0, 99]);
     }
+
+    #[test]
+    fn day_05_run_negative() {
+        let (input, output) = null_input_and_output();
+        let mut program = Program::new(vec![1101, 100, -1, 4, 0], input, output);
+        let result = program.run();
+
+        assert_eq!(result.is_ok(), true);
+        assert_eq!(program.memory, [1101, 100, -1, 4, 99]);
+    }
+
+    #[test]
+    fn day_05_test_io() {
+        let input = UnitTestInput::new(vec![1, 2]);
+        let output = UnitTestOutput::new(vec![3]);
+
+        let mut program = Program::new(vec![3, 0, 3, 1, 1, 0, 1, 2, 4, 2, 99], input, output);
+        let result = program.run();
+
+        assert_eq!(result.is_ok(), true);
+        assert_eq!(program.memory, [1, 2, 3, 1, 1, 0, 1, 2, 4, 2, 99]);
+    }
 }
