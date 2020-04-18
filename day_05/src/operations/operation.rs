@@ -7,16 +7,16 @@ pub enum Operation {
     Add {
         addend_1: Parameter,
         addend_2: Parameter,
-        destination: Parameter,
+        destination_address: usize,
     },
     Exit,
     Input {
-        destination: Parameter,
+        destination_address: usize,
     },
     Multiply {
         factor_1: Parameter,
         factor_2: Parameter,
-        destination: Parameter,
+        destination_address: usize,
     },
     Output {
         source: Parameter,
@@ -40,10 +40,10 @@ impl Operation {
                     ref mode,
                 },
                 [addend_1, addend_2, destination, ..],
-            ) => Ok(Operation::Add {
+            ) => Self::has_destination(&mode.parameter_3, || Operation::Add {
                 addend_1: addend_1.to_parameter(&mode.parameter_1),
                 addend_2: addend_2.to_parameter(&mode.parameter_2),
-                destination: destination.to_parameter(&ParameterMode::Position),
+                destination_address: *destination as usize,
             }),
             (
                 OpCode {
@@ -51,13 +51,19 @@ impl Operation {
                     ref mode,
                 },
                 [factor_1, factor_2, destination, ..],
-            ) => Ok(Operation::Multiply {
+            ) => Self::has_destination(&mode.parameter_3, || Operation::Multiply {
                 factor_1: factor_1.to_parameter(&mode.parameter_1),
                 factor_2: factor_2.to_parameter(&mode.parameter_2),
-                destination: destination.to_parameter(&ParameterMode::Position),
+                destination_address: *destination as usize,
             }),
-            (OpCode { operation: 3, .. }, [destination, ..]) => Ok(Operation::Input {
-                destination: destination.to_parameter(&ParameterMode::Position),
+            (
+                OpCode {
+                    operation: 3,
+                    ref mode,
+                },
+                [destination, ..],
+            ) => Self::has_destination(&mode.parameter_1, || Operation::Input {
+                destination_address: *destination as usize,
             }),
             (
                 OpCode {
@@ -74,6 +80,20 @@ impl Operation {
                 unsupported_opcode.operation
             )
             .into()),
+        }
+    }
+
+    fn has_destination<F>(
+        parameter: &ParameterMode,
+        creator: F,
+    ) -> Result<Operation, Cow<'static, str>>
+    where
+        F: FnOnce() -> Operation,
+    {
+        if *parameter == ParameterMode::Position {
+            Ok(creator())
+        } else {
+            Err("Immediate is an invalid mode for as a destination".into())
         }
     }
 
@@ -100,9 +120,17 @@ mod tests {
             Ok(Operation::Add {
                 addend_1: Parameter::Address(2),
                 addend_2: Parameter::Address(3),
-                destination: Parameter::Address(4)
+                destination_address: 4
             })
         );
+    }
+
+    #[test]
+    fn parse_add_invalid_destination() {
+        let opcodes = [11101, 2, 3, 4];
+        let op = Operation::from_slice(&opcodes);
+
+        assert!(op.is_err());
     }
 
     #[test]
@@ -115,7 +143,7 @@ mod tests {
             Ok(Operation::Add {
                 addend_1: Parameter::Address(2),
                 addend_2: Parameter::Address(3),
-                destination: Parameter::Address(4)
+                destination_address: 4
             })
         );
     }
@@ -138,9 +166,17 @@ mod tests {
             Ok(Operation::Multiply {
                 factor_1: Parameter::Address(3),
                 factor_2: Parameter::Address(4),
-                destination: Parameter::Address(5)
+                destination_address: 5
             })
         );
+    }
+
+    #[test]
+    fn parse_multiply_invalid_destination() {
+        let opcodes = [10002, 3, 4, 5];
+        let op = Operation::from_slice(&opcodes);
+
+        assert!(op.is_err());
     }
 
     #[test]
@@ -153,7 +189,41 @@ mod tests {
             Ok(Operation::Multiply {
                 factor_1: Parameter::Address(3),
                 factor_2: Parameter::Address(4),
-                destination: Parameter::Address(5)
+                destination_address: 5
+            })
+        );
+    }
+
+    #[test]
+    fn parse_input_exact() {
+        let opcodes = [003, 10];
+        let op = Operation::from_slice(&opcodes);
+
+        assert_eq!(
+            op,
+            Ok(Operation::Input {
+                destination_address: 10
+            })
+        );
+    }
+
+    #[test]
+    fn parse_input_exact_invalid_testination() {
+        let opcodes = [103, 10];
+        let op = Operation::from_slice(&opcodes);
+
+        assert!(op.is_err());
+    }
+
+    #[test]
+    fn parse_output_trailing() {
+        let opcodes = [104, 10, 2];
+        let op = Operation::from_slice(&opcodes);
+
+        assert_eq!(
+            op,
+            Ok(Operation::Output {
+                source: Parameter::Value(10)
             })
         );
     }

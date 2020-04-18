@@ -41,23 +41,25 @@ where
                 Operation::Add {
                     addend_1,
                     addend_2,
-                    destination,
+                    destination_address,
                 } => {
                     let result = self.load(addend_1) + self.load(addend_2);
-                    self.store(destination, result);
+                    self.store(destination_address, result);
                 }
                 Operation::Multiply {
                     factor_1,
                     factor_2,
-                    destination,
+                    destination_address,
                 } => {
                     let result = self.load(factor_1) * self.load(factor_2);
-                    self.store(destination, result);
+                    self.store(destination_address, result);
                 }
                 Operation::Exit => break,
-                Operation::Input { destination } => {
+                Operation::Input {
+                    destination_address,
+                } => {
                     let value = self.input.read_line();
-                    self.store(destination, value)
+                    self.store(destination_address, value)
                 }
                 Operation::Output { source } => {
                     let value = self.load(source);
@@ -78,11 +80,8 @@ where
         }
     }
 
-    fn store(&mut self, parameter: &Parameter, value: i32) {
-        match parameter {
-            Parameter::Address(idx) => self.memory[*idx] = value,
-            Parameter::Value(_) => { /* NOP, might change this to an error later */ }
-        }
+    fn store(&mut self, address: &usize, value: i32) {
+        self.memory[*address] = value;
     }
 }
 
