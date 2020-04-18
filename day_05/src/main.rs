@@ -23,10 +23,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         .collect();
 
     let stdin_reader = StdinReader::new();
-
-    let stdout = std::io::stdout();
-    let stdout_lock = stdout.lock();
-    let stdout_writer = StdoutWriter::new(stdout_lock);
+    let stdout_writer = StdoutWriter::new();
 
     let mut program = Program::new(int_code, stdin_reader, stdout_writer);
     program.run()?;

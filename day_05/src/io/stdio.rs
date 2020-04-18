@@ -1,5 +1,5 @@
 use super::{LineReader, LineWriter};
-use std::io::{BufRead, Lines, Stdin, StdinLock, StdoutLock, Write};
+use std::io::{BufRead, Write};
 
 pub struct StdinReader {
     buffer: String,
@@ -20,7 +20,7 @@ impl LineReader for StdinReader {
 
         self.buffer.clear();
         lock.read_line(&mut self.buffer)
-            .expect("Failed to read line");
+            .expect("Failed to read line from stdin");
 
         self.buffer
             .trim()
@@ -29,20 +29,19 @@ impl LineReader for StdinReader {
     }
 }
 
-pub struct StdoutWriter<'a> {
-    stdout_lock: StdoutLock<'a>,
-}
+pub struct StdoutWriter;
 
-impl<'a> StdoutWriter<'a> {
-    pub fn new(stdout_lock: StdoutLock<'a>) -> Self {
-        Self { stdout_lock }
+impl StdoutWriter {
+    pub fn new() -> Self {
+        Self
     }
 }
 
-impl<'a> LineWriter for StdoutWriter<'a> {
+impl LineWriter for StdoutWriter {
     fn write_line(&mut self, value: i32) {
-        self.stdout_lock
-            .write(format!("{}\n", value).as_bytes())
-            .unwrap();
+        let stdout = std::io::stdout();
+        let mut stdout_lock = stdout.lock();
+
+        write!(stdout_lock, "{}\n", value).expect("Failed to write output to stdout");
     }
 }
