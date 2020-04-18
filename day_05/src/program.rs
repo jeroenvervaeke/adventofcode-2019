@@ -1,8 +1,5 @@
 use super::{
-    io::{
-        testing::{UnitTestInput, UnitTestOutput},
-        LineReader, LineWriter,
-    },
+    io::{LineReader, LineWriter},
     operations::Parameter,
     Operation,
 };
@@ -88,6 +85,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::io::testing::{UnitTestInput, UnitTestOutput};
 
     fn null_input_and_output() -> (UnitTestInput, UnitTestOutput) {
         (

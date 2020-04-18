@@ -1,4 +1,5 @@
 pub mod stdio;
+#[cfg(test)]
 pub mod testing;
 
 pub trait LineReader {
