@@ -62,6 +62,56 @@ where
                     let value = self.load(source);
                     self.output.write_line(value);
                 }
+                Operation::JumpIfTrue {
+                    condition,
+                    location,
+                } => {
+                    let value = self.load(condition);
+                    if value != 0 {
+                        let location = self.load(location);
+                        idx = location as usize;
+                        continue;
+                    }
+                }
+                Operation::JumpIfFalse {
+                    condition,
+                    location,
+                } => {
+                    let value = self.load(condition);
+                    if value == 0 {
+                        let location = self.load(location);
+                        idx = location as usize;
+                        continue;
+                    }
+                }
+                Operation::LessThan {
+                    value_1,
+                    value_2,
+                    destination_address,
+                } => {
+                    let value_1 = self.load(value_1);
+                    let value_2 = self.load(value_2);
+
+                    if value_1 < value_2 {
+                        self.store(destination_address, 1)
+                    } else {
+                        self.store(destination_address, 0)
+                    }
+                }
+                Operation::Equals {
+                    value_1,
+                    value_2,
+                    destination_address,
+                } => {
+                    let value_1 = self.load(value_1);
+                    let value_2 = self.load(value_2);
+
+                    if value_1 == value_2 {
+                        self.store(destination_address, 1)
+                    } else {
+                        self.store(destination_address, 0)
+                    }
+                }
             }
 
             idx += op_code.op_len();
@@ -92,6 +142,16 @@ mod tests {
             UnitTestInput::new(Vec::new()),
             UnitTestOutput::new(Vec::new()),
         )
+    }
+
+    fn run_fixed_io(program: Vec<i32>, input: Vec<i32>, output: Vec<i32>) {
+        let input = UnitTestInput::new(input);
+        let output = UnitTestOutput::new(output);
+
+        let mut program = Program::new(program, input, output);
+        let result = program.run();
+
+        assert_eq!(result.is_ok(), true);
     }
 
     #[test]
@@ -171,5 +231,120 @@ mod tests {
 
         assert_eq!(result.is_ok(), true);
         assert_eq!(program.memory, [1, 2, 3, 1, 1, 0, 1, 2, 4, 2, 99]);
+    }
+
+    #[test]
+    fn day_05_part_2_example_1_input_8() {
+        run_fixed_io(vec![3, 9, 8, 9, 10, 9, 4, 9, 99, -1, 8], vec![8], vec![1]);
+    }
+
+    #[test]
+    fn day_05_part_2_example_1_input_9() {
+        run_fixed_io(vec![3, 9, 8, 9, 10, 9, 4, 9, 99, -1, 8], vec![9], vec![0]);
+    }
+
+    #[test]
+    fn day_05_part_2_example_2_input_7() {
+        run_fixed_io(vec![3, 9, 7, 9, 10, 9, 4, 9, 99, -1, 8], vec![7], vec![1]);
+    }
+
+    #[test]
+    fn day_05_part_2_example_2_input_9() {
+        run_fixed_io(vec![3, 9, 7, 9, 10, 9, 4, 9, 99, -1, 8], vec![9], vec![0]);
+    }
+
+    #[test]
+    fn day_05_part_2_example_3_input_8() {
+        run_fixed_io(vec![3, 3, 1108, -1, 8, 3, 4, 3, 99], vec![8], vec![1]);
+    }
+
+    #[test]
+    fn day_05_part_2_example_3_input_9() {
+        run_fixed_io(vec![3, 3, 1108, -1, 8, 3, 4, 3, 99], vec![9], vec![0]);
+    }
+
+    #[test]
+    fn day_05_part_2_example_4_input_7() {
+        run_fixed_io(vec![3, 3, 1107, -1, 8, 3, 4, 3, 99], vec![7], vec![1]);
+    }
+
+    #[test]
+    fn day_05_part_2_example_4_input_9() {
+        run_fixed_io(vec![3, 3, 1107, -1, 8, 3, 4, 3, 99], vec![9], vec![0]);
+    }
+
+    #[test]
+    fn day_05_part_2_example_5_input_0() {
+        run_fixed_io(
+            vec![3, 12, 6, 12, 15, 1, 13, 14, 13, 4, 13, 99, -1, 0, 1, 9],
+            vec![0],
+            vec![0],
+        );
+    }
+
+    #[test]
+    fn day_05_part_2_example_5_input_5() {
+        run_fixed_io(
+            vec![3, 12, 6, 12, 15, 1, 13, 14, 13, 4, 13, 99, -1, 0, 1, 9],
+            vec![5],
+            vec![1],
+        );
+    }
+
+    #[test]
+    fn day_05_part_2_example_6_input_0() {
+        run_fixed_io(
+            vec![3, 3, 1105, -1, 9, 1101, 0, 0, 12, 4, 12, 99, 1],
+            vec![0],
+            vec![0],
+        );
+    }
+
+    #[test]
+    fn day_05_part_2_example_6_input_5() {
+        run_fixed_io(
+            vec![3, 3, 1105, -1, 9, 1101, 0, 0, 12, 4, 12, 99, 1],
+            vec![5],
+            vec![1],
+        );
+    }
+
+    #[test]
+    fn day_05_part_2_example_7_input_7() {
+        run_fixed_io(
+            vec![
+                3, 21, 1008, 21, 8, 20, 1005, 20, 22, 107, 8, 21, 20, 1006, 20, 31, 1106, 0, 36,
+                98, 0, 0, 1002, 21, 125, 20, 4, 20, 1105, 1, 46, 104, 999, 1105, 1, 46, 1101, 1000,
+                1, 20, 4, 20, 1105, 1, 46, 98, 99,
+            ],
+            vec![7],
+            vec![999],
+        );
+    }
+
+    #[test]
+    fn day_05_part_2_example_7_input_8() {
+        run_fixed_io(
+            vec![
+                3, 21, 1008, 21, 8, 20, 1005, 20, 22, 107, 8, 21, 20, 1006, 20, 31, 1106, 0, 36,
+                98, 0, 0, 1002, 21, 125, 20, 4, 20, 1105, 1, 46, 104, 999, 1105, 1, 46, 1101, 1000,
+                1, 20, 4, 20, 1105, 1, 46, 98, 99,
+            ],
+            vec![8],
+            vec![1000],
+        );
+    }
+
+    #[test]
+    fn day_05_part_2_example_7_input_9() {
+        run_fixed_io(
+            vec![
+                3, 21, 1008, 21, 8, 20, 1005, 20, 22, 107, 8, 21, 20, 1006, 20, 31, 1106, 0, 36,
+                98, 0, 0, 1002, 21, 125, 20, 4, 20, 1105, 1, 46, 104, 999, 1105, 1, 46, 1101, 1000,
+                1, 20, 4, 20, 1105, 1, 46, 98, 99,
+            ],
+            vec![9],
+            vec![1001],
+        );
     }
 }

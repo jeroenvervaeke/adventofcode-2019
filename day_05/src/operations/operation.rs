@@ -21,12 +21,34 @@ pub enum Operation {
     Output {
         source: Parameter,
     },
+    JumpIfTrue {
+        condition: Parameter,
+        location: Parameter,
+    },
+    JumpIfFalse {
+        condition: Parameter,
+        location: Parameter,
+    },
+    LessThan {
+        value_1: Parameter,
+        value_2: Parameter,
+        destination_address: usize,
+    },
+    Equals {
+        value_1: Parameter,
+        value_2: Parameter,
+        destination_address: usize,
+    },
 }
 
 impl Operation {
     pub fn op_len(&self) -> usize {
         match self {
-            Operation::Add { .. } | Operation::Multiply { .. } => 4,
+            Operation::Add { .. }
+            | Operation::Multiply { .. }
+            | Operation::LessThan { .. }
+            | Operation::Equals { .. } => 4,
+            Operation::JumpIfTrue { .. } | Operation::JumpIfFalse { .. } => 3,
             Operation::Input { .. } | Operation::Output { .. } => 2,
             Operation::Exit => 1,
         }
@@ -74,6 +96,48 @@ impl Operation {
             ) => Ok(Operation::Output {
                 source: source.to_parameter(&mode.parameter_1),
             }),
+            (
+                OpCode {
+                    operation: 5,
+                    ref mode,
+                },
+                [condition, location, ..],
+            ) => Ok(Operation::JumpIfTrue {
+                condition: condition.to_parameter(&mode.parameter_1),
+                location: location.to_parameter(&mode.parameter_2),
+            }),
+            (
+                OpCode {
+                    operation: 6,
+                    ref mode,
+                },
+                [condition, location, ..],
+            ) => Ok(Operation::JumpIfFalse {
+                condition: condition.to_parameter(&mode.parameter_1),
+                location: location.to_parameter(&mode.parameter_2),
+            }),
+            (
+                OpCode {
+                    operation: 7,
+                    ref mode,
+                },
+                [value_1, value_2, destination, ..],
+            ) => Self::has_destination(&mode.parameter_3, || Operation::LessThan {
+                value_1: value_1.to_parameter(&mode.parameter_1),
+                value_2: value_2.to_parameter(&mode.parameter_2),
+                destination_address: *destination as usize,
+            }),
+            (
+                OpCode {
+                    operation: 8,
+                    ref mode,
+                },
+                [value_1, value_2, destination, ..],
+            ) => Self::has_destination(&mode.parameter_3, || Operation::Equals {
+                value_1: value_1.to_parameter(&mode.parameter_1),
+                value_2: value_2.to_parameter(&mode.parameter_2),
+                destination_address: *destination as usize,
+            }),
             (OpCode { operation: 99, .. }, [..]) => Ok(Operation::Exit),
             (unsupported_opcode, _) => Err(format!(
                 "Operation '{}' is not yet supported!",
@@ -120,7 +184,7 @@ mod tests {
             Ok(Operation::Add {
                 addend_1: Parameter::Address(2),
                 addend_2: Parameter::Address(3),
-                destination_address: 4
+                destination_address: 4,
             })
         );
     }
@@ -143,7 +207,7 @@ mod tests {
             Ok(Operation::Add {
                 addend_1: Parameter::Address(2),
                 addend_2: Parameter::Address(3),
-                destination_address: 4
+                destination_address: 4,
             })
         );
     }
@@ -166,7 +230,7 @@ mod tests {
             Ok(Operation::Multiply {
                 factor_1: Parameter::Address(3),
                 factor_2: Parameter::Address(4),
-                destination_address: 5
+                destination_address: 5,
             })
         );
     }
@@ -189,7 +253,7 @@ mod tests {
             Ok(Operation::Multiply {
                 factor_1: Parameter::Address(3),
                 factor_2: Parameter::Address(4),
-                destination_address: 5
+                destination_address: 5,
             })
         );
     }
@@ -242,5 +306,63 @@ mod tests {
         let op = Operation::from_slice(&opcodes);
 
         assert_eq!(op, Ok(Operation::Exit));
+    }
+
+    #[test]
+    fn parse_jump_if_true_trailing() {
+        let opcodes = [105, 1, 2, 3];
+        let op = Operation::from_slice(&opcodes);
+
+        assert_eq!(
+            op,
+            Ok(Operation::JumpIfTrue {
+                condition: Parameter::Value(1),
+                location: Parameter::Address(2)
+            })
+        );
+    }
+
+    #[test]
+    fn parse_jump_if_false_trailing() {
+        let opcodes = [1006, 1, 2, 3];
+        let op = Operation::from_slice(&opcodes);
+
+        assert_eq!(
+            op,
+            Ok(Operation::JumpIfFalse {
+                condition: Parameter::Address(1),
+                location: Parameter::Value(2)
+            })
+        );
+    }
+
+    #[test]
+    fn parse_less_than_exact() {
+        let opcodes = [107, 1, 2, 3];
+        let op = Operation::from_slice(&opcodes);
+
+        assert_eq!(
+            op,
+            Ok(Operation::LessThan {
+                value_1: Parameter::Value(1),
+                value_2: Parameter::Address(2),
+                destination_address: 3
+            })
+        );
+    }
+
+    #[test]
+    fn parse_equals_trailing() {
+        let opcodes = [1008, 1, 2, 3, 4];
+        let op = Operation::from_slice(&opcodes);
+
+        assert_eq!(
+            op,
+            Ok(Operation::Equals {
+                value_1: Parameter::Address(1),
+                value_2: Parameter::Value(2),
+                destination_address: 3
+            })
+        );
     }
 }
