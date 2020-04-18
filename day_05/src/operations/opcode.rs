@@ -25,7 +25,7 @@ impl TryFrom<i32> for OpCode {
 
     fn try_from(op_with_mode: i32) -> Result<Self, Self::Error> {
         Ok(OpCode {
-            operation: op_with_mode % 100,
+            operation: extract_op_code(op_with_mode),
             mode: OpCodeMode {
                 parameter_1: extract_parameter_mode(op_with_mode, 0)?,
                 parameter_2: extract_parameter_mode(op_with_mode, 1)?,
@@ -33,6 +33,10 @@ impl TryFrom<i32> for OpCode {
             },
         })
     }
+}
+
+fn extract_op_code(op_with_mode: i32) -> i32 {
+    op_with_mode % 100
 }
 
 fn extract_parameter_mode(
@@ -61,6 +65,27 @@ impl TryFrom<i32> for ParameterMode {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn extract_op_code_11103() {
+        let op_with_mode = 11103;
+
+        assert_eq!(3, extract_op_code(op_with_mode));
+    }
+
+    #[test]
+    fn extract_op_code_99() {
+        let op_with_mode = 99;
+
+        assert_eq!(99, extract_op_code(op_with_mode));
+    }
+
+    #[test]
+    fn extract_op_code_11111() {
+        let op_with_mode = 11;
+
+        assert_eq!(11, extract_op_code(op_with_mode));
+    }
 
     #[test]
     fn extract_parameter_mode_11103() {
