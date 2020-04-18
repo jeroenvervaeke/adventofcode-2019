@@ -1,21 +1,31 @@
 use super::{LineReader, LineWriter};
-use std::io::{BufRead, Lines, StdinLock, StdoutLock, Write};
+use std::io::{BufRead, Lines, Stdin, StdinLock, StdoutLock, Write};
 
-pub struct StdinReader<'a> {
-    iterator: Lines<StdinLock<'a>>,
+pub struct StdinReader {
+    buffer: String,
 }
 
-impl<'a> StdinReader<'a> {
-    pub fn new(stdin_lock: StdinLock<'a>) -> Self {
-        let iterator = stdin_lock.lines();
-        Self { iterator }
+impl<'a> StdinReader {
+    pub fn new() -> Self {
+        Self {
+            buffer: String::with_capacity(32),
+        }
     }
 }
 
-impl<'a> LineReader for StdinReader<'a> {
+impl LineReader for StdinReader {
     fn read_line(&mut self) -> i32 {
-        // We don't care about error handling for now
-        self.iterator.next().unwrap().unwrap().parse().unwrap()
+        let stdin = std::io::stdin();
+        let mut lock = stdin.lock();
+
+        self.buffer.clear();
+        lock.read_line(&mut self.buffer)
+            .expect("Failed to read line");
+
+        self.buffer
+            .trim()
+            .parse()
+            .expect("Input was not of the type i32")
     }
 }
 

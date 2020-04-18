@@ -22,9 +22,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         .map(|digit_str| digit_str.parse::<i32>().expect("Invalid input file"))
         .collect();
 
-    let stdin = std::io::stdin();
-    let stdin_lock = stdin.lock();
-    let stdin_reader = StdinReader::new(stdin_lock);
+    let stdin_reader = StdinReader::new();
 
     let stdout = std::io::stdout();
     let stdout_lock = stdout.lock();
