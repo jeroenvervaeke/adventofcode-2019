@@ -10,8 +10,16 @@ impl UnitTestInput {
         Self { current: 0, inputs }
     }
 
-    pub fn assert_finished(&self) {
+    fn assert_finished(&self) {
         assert_eq!(self.current, self.inputs.len(), "Not all input was read");
+    }
+}
+
+impl Drop for UnitTestInput {
+    fn drop(&mut self) {
+        if !std::thread::panicking() {
+            self.assert_finished();
+        }
     }
 }
 
@@ -40,7 +48,7 @@ impl UnitTestOutput {
         }
     }
 
-    pub fn assert_finished(&self) {
+    fn assert_finished(&self) {
         assert_eq!(
             self.current,
             self.expected_outputs.len(),
@@ -63,6 +71,14 @@ impl LineWriter for UnitTestOutput {
         );
 
         self.current += 1;
+    }
+}
+
+impl Drop for UnitTestOutput {
+    fn drop(&mut self) {
+        if !std::thread::panicking() {
+            self.assert_finished();
+        }
     }
 }
 
