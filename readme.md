@@ -2,8 +2,4 @@
 
 My attempt to solve all puzzles of the advent of code using rust
 
-
-
-
-
-Status: 8 :star:
+Status: 10 :star:
