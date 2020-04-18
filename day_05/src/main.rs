@@ -2,7 +2,7 @@ mod io;
 mod operations;
 mod program;
 
-use io::{StdinReader, StdoutWriter};
+use io::stdio::{StdinReader, StdoutWriter};
 use operations::Operation;
 use program::Program;
 use std::error::Error;

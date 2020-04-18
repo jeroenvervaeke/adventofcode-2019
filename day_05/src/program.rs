@@ -1,5 +1,8 @@
 use super::{
-    io::{LineReader, LineWriter, UnitTestInput, UnitTestOutput},
+    io::{
+        testing::{UnitTestInput, UnitTestOutput},
+        LineReader, LineWriter,
+    },
     operations::Parameter,
     Operation,
 };
