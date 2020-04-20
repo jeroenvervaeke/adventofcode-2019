@@ -1,15 +1,37 @@
 use std::borrow::Cow;
 use std::collections::HashMap;
+use std::error::Error;
+use std::fs::File;
+use std::io::{BufRead, BufReader};
 use std::str::FromStr;
 
-fn main() {
-    println!("Hello, world!");
+fn main() -> Result<(), Box<dyn Error>> {
+    let file = File::open("day_06/input.txt")?;
+    let reader = BufReader::new(file);
+
+    let direct_orbit_expressions: Vec<DirectOrbitExpression> = reader
+        .lines()
+        .filter_map(|sr| sr.ok().map(|s| s.parse().ok()).flatten())
+        .collect();
+    let space_object_result = direct_orbit_expressions.to_space_object()?;
+
+    println!("Depth: {}", space_object_result.depth(0));
+
+    Ok(())
 }
 
 #[derive(Debug, PartialEq)]
 struct SpaceObject {
     name: String,
     orbits: Vec<SpaceObject>,
+}
+
+impl SpaceObject {
+    fn depth(&self, current: i32) -> i32 {
+        self.orbits
+            .iter()
+            .fold(current, |sum, orbit| sum + orbit.depth(current + 1))
+    }
 }
 
 #[derive(Debug, PartialEq)]
@@ -167,5 +189,59 @@ mod tests {
                 }]
             })
         );
+    }
+
+    #[test]
+    fn example_depth() {
+        let space_object = SpaceObject {
+            name: String::from("COM"),
+            orbits: vec![SpaceObject {
+                name: String::from("B"),
+                orbits: vec![
+                    SpaceObject {
+                        name: String::from("C"),
+                        orbits: vec![SpaceObject {
+                            name: String::from("D"),
+                            orbits: vec![
+                                SpaceObject {
+                                    name: String::from("E"),
+                                    orbits: vec![
+                                        SpaceObject {
+                                            name: String::from("F"),
+                                            orbits: vec![],
+                                        },
+                                        SpaceObject {
+                                            name: String::from("J"),
+                                            orbits: vec![SpaceObject {
+                                                name: String::from("K"),
+                                                orbits: vec![SpaceObject {
+                                                    name: String::from("L"),
+                                                    orbits: vec![],
+                                                }],
+                                            }],
+                                        },
+                                    ],
+                                },
+                                SpaceObject {
+                                    name: String::from("I"),
+                                    orbits: vec![],
+                                },
+                            ],
+                        }],
+                    },
+                    SpaceObject {
+                        name: String::from("G"),
+                        orbits: vec![SpaceObject {
+                            name: String::from("H"),
+                            orbits: vec![],
+                        }],
+                    },
+                ],
+            }],
+        };
+
+        let expected = 42;
+        let actual = space_object.depth(0);
+        assert_eq!(actual, expected);
     }
 }
