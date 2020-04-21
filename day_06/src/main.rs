@@ -16,6 +16,10 @@ fn main() -> Result<(), Box<dyn Error>> {
     let space_object_result = direct_orbit_expressions.to_space_object()?;
 
     println!("Depth: {}", space_object_result.depth(0));
+    println!(
+        "Minimum number of orbital transfers: {:?}",
+        space_object_result.transfers(&String::from("YOU"), &String::from("SAN"))
+    );
 
     Ok(())
 }
@@ -31,6 +35,52 @@ impl SpaceObject {
         self.orbits
             .iter()
             .fold(current, |sum, orbit| sum + orbit.depth(current + 1))
+    }
+
+    fn contains(&self, destination: &String) -> bool {
+        self.orbits
+            .iter()
+            .any(|o| &o.name == destination || o.contains(destination))
+    }
+
+    fn deepest_orbit(&self, from: &String, to: &String) -> Option<&SpaceObject> {
+        if self.contains(from) && self.contains(to) {
+            for orbit in &self.orbits {
+                if let Some(deepest_orbit) = orbit.deepest_orbit(from, to) {
+                    return Some(deepest_orbit);
+                }
+            }
+
+            Some(self)
+        } else {
+            None
+        }
+    }
+
+    fn transfers(&self, from: &String, to: &String) -> Option<i32> {
+        let deepest = self.deepest_orbit(from, to)?;
+
+        if let (Some(from_distance), Some(to_distance)) =
+            (deepest.distance_to(0, from), deepest.distance_to(0, to))
+        {
+            Some(from_distance + to_distance - 2)
+        } else {
+            None
+        }
+    }
+
+    fn distance_to(&self, current: i32, destination: &String) -> Option<i32> {
+        if self.orbits.len() == 0 {
+            None
+        } else {
+            self.orbits.iter().find_map(|orbit| {
+                if &orbit.name == destination {
+                    Some(current + 1)
+                } else {
+                    orbit.distance_to(current + 1, destination)
+                }
+            })
+        }
     }
 }
 
@@ -243,5 +293,80 @@ mod tests {
         let expected = 42;
         let actual = space_object.depth(0);
         assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn part_2_example_distance_to() {
+        let input = vec![
+            "COM)B", "B)C", "C)D", "D)E", "E)F", "B)G", "G)H", "D)I", "E)J", "J)K", "K)L", "K)YOU",
+            "I)SAN",
+        ];
+
+        let direct_orbit_expressions: Vec<DirectOrbitExpression> =
+            input.iter().filter_map(|s| s.parse().ok()).collect();
+        let space_object = direct_orbit_expressions
+            .to_space_object()
+            .expect("Should be valid");
+
+        assert_eq!(space_object.distance_to(0, &String::from("B")), Some(1));
+        assert_eq!(space_object.distance_to(0, &String::from("C")), Some(2));
+        assert_eq!(space_object.distance_to(0, &String::from("YOU")), Some(7));
+    }
+
+    #[test]
+    fn part_2_example_contains() {
+        let input = vec![
+            "COM)B", "B)C", "C)D", "D)E", "E)F", "B)G", "G)H", "D)I", "E)J", "J)K", "K)L", "K)YOU",
+            "I)SAN",
+        ];
+
+        let direct_orbit_expressions: Vec<DirectOrbitExpression> =
+            input.iter().filter_map(|s| s.parse().ok()).collect();
+        let space_object = direct_orbit_expressions
+            .to_space_object()
+            .expect("Should be valid");
+
+        assert!(space_object.contains(&String::from("B")));
+        assert!(space_object.contains(&String::from("YOU")));
+        assert!(!space_object.contains(&String::from("COM")));
+    }
+
+    #[test]
+    fn part_2_example_deepest_orbit_you_san() {
+        let input = vec![
+            "COM)B", "B)C", "C)D", "D)E", "E)F", "B)G", "G)H", "D)I", "E)J", "J)K", "K)L", "K)YOU",
+            "I)SAN",
+        ];
+
+        let direct_orbit_expressions: Vec<DirectOrbitExpression> =
+            input.iter().filter_map(|s| s.parse().ok()).collect();
+        let space_object = direct_orbit_expressions
+            .to_space_object()
+            .expect("Should be valid");
+
+        let deepest_orbit = space_object
+            .deepest_orbit(&String::from("YOU"), &String::from("SAN"))
+            .expect("Should find an orbit");
+
+        assert_eq!(deepest_orbit.name, String::from("D"));
+    }
+
+    #[test]
+    fn part_2_example() {
+        let input = vec![
+            "COM)B", "B)C", "C)D", "D)E", "E)F", "B)G", "G)H", "D)I", "E)J", "J)K", "K)L", "K)YOU",
+            "I)SAN",
+        ];
+
+        let direct_orbit_expressions: Vec<DirectOrbitExpression> =
+            input.iter().filter_map(|s| s.parse().ok()).collect();
+        let space_object = direct_orbit_expressions
+            .to_space_object()
+            .expect("Should be valid");
+
+        assert_eq!(
+            space_object.transfers(&String::from("YOU"), &String::from("SAN")),
+            Some(4)
+        );
     }
 }

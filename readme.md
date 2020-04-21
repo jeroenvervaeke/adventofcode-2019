@@ -2,4 +2,4 @@
 
 My attempt to solve all puzzles of the advent of code using rust
 
-Status: 11 :star:
+Status: 12 :star:
