@@ -1,3 +1,4 @@
+pub mod programmable;
 pub mod stdio;
 #[cfg(test)]
 pub mod testing;

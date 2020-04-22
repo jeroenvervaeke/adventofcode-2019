@@ -5,22 +5,22 @@ use super::{
 };
 use std::borrow::Cow;
 
-pub struct Program<Input, Output>
+pub struct Program<'a, Input, Output>
 where
     Input: LineReader,
     Output: LineWriter,
 {
     memory: Vec<i32>,
-    input: Input,
-    output: Output,
+    input: &'a mut Input,
+    output: &'a mut Output,
 }
 
-impl<Input, Output> Program<Input, Output>
+impl<'a, Input, Output> Program<'a, Input, Output>
 where
     Input: LineReader,
     Output: LineWriter,
 {
-    pub fn new(memory: Vec<i32>, input: Input, output: Output) -> Self {
+    pub fn new(memory: Vec<i32>, input: &'a mut Input, output: &'a mut Output) -> Self {
         Self {
             input,
             memory,
@@ -145,10 +145,10 @@ mod tests {
     }
 
     fn run_fixed_io(program: Vec<i32>, input: Vec<i32>, output: Vec<i32>) {
-        let input = UnitTestInput::new(input);
-        let output = UnitTestOutput::new(output);
+        let mut input = UnitTestInput::new(input);
+        let mut output = UnitTestOutput::new(output);
 
-        let mut program = Program::new(program, input, output);
+        let mut program = Program::new(program, &mut input, &mut output);
         let result = program.run();
 
         assert_eq!(result.is_ok(), true);
@@ -156,11 +156,11 @@ mod tests {
 
     #[test]
     fn day_02_run_example_explained_in_text() {
-        let (input, output) = null_input_and_output();
+        let (mut input, mut output) = null_input_and_output();
         let mut program = Program::new(
             vec![1, 9, 10, 3, 2, 3, 11, 0, 99, 30, 40, 50],
-            input,
-            output,
+            &mut input,
+            &mut output,
         );
         let result = program.run();
 
@@ -173,8 +173,8 @@ mod tests {
 
     #[test]
     fn day_02_run_example_short_1() {
-        let (input, output) = null_input_and_output();
-        let mut program = Program::new(vec![1, 0, 0, 0, 99], input, output);
+        let (mut input, mut output) = null_input_and_output();
+        let mut program = Program::new(vec![1, 0, 0, 0, 99], &mut input, &mut output);
         let result = program.run();
 
         assert_eq!(result.is_ok(), true);
@@ -183,8 +183,8 @@ mod tests {
 
     #[test]
     fn day_02_run_example_short_2() {
-        let (input, output) = null_input_and_output();
-        let mut program = Program::new(vec![2, 3, 0, 3, 99], input, output);
+        let (mut input, mut output) = null_input_and_output();
+        let mut program = Program::new(vec![2, 3, 0, 3, 99], &mut input, &mut output);
         let result = program.run();
 
         assert_eq!(result.is_ok(), true);
@@ -193,8 +193,8 @@ mod tests {
 
     #[test]
     fn day_02_run_example_short_3() {
-        let (input, output) = null_input_and_output();
-        let mut program = Program::new(vec![2, 4, 4, 5, 99, 0], input, output);
+        let (mut input, mut output) = null_input_and_output();
+        let mut program = Program::new(vec![2, 4, 4, 5, 99, 0], &mut input, &mut output);
         let result = program.run();
 
         assert_eq!(result.is_ok(), true);
@@ -203,8 +203,8 @@ mod tests {
 
     #[test]
     fn day_02_run_example_short_4() {
-        let (input, output) = null_input_and_output();
-        let mut program = Program::new(vec![1, 1, 1, 4, 99, 5, 6, 0, 99], input, output);
+        let (mut input, mut output) = null_input_and_output();
+        let mut program = Program::new(vec![1, 1, 1, 4, 99, 5, 6, 0, 99], &mut input, &mut output);
         let result = program.run();
 
         assert_eq!(result.is_ok(), true);
@@ -213,8 +213,8 @@ mod tests {
 
     #[test]
     fn day_05_run_negative() {
-        let (input, output) = null_input_and_output();
-        let mut program = Program::new(vec![1101, 100, -1, 4, 0], input, output);
+        let (mut input, mut output) = null_input_and_output();
+        let mut program = Program::new(vec![1101, 100, -1, 4, 0], &mut input, &mut output);
         let result = program.run();
 
         assert_eq!(result.is_ok(), true);
@@ -223,10 +223,14 @@ mod tests {
 
     #[test]
     fn day_05_test_io() {
-        let input = UnitTestInput::new(vec![1, 2]);
-        let output = UnitTestOutput::new(vec![3]);
+        let mut input = UnitTestInput::new(vec![1, 2]);
+        let mut output = UnitTestOutput::new(vec![3]);
 
-        let mut program = Program::new(vec![3, 0, 3, 1, 1, 0, 1, 2, 4, 2, 99], input, output);
+        let mut program = Program::new(
+            vec![3, 0, 3, 1, 1, 0, 1, 2, 4, 2, 99],
+            &mut input,
+            &mut output,
+        );
         let result = program.run();
 
         assert_eq!(result.is_ok(), true);
