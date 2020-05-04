@@ -18,7 +18,12 @@ fn calculate_progress_matrix(len: usize) -> Vec<Vec<i16>> {
     let mut output = Vec::with_capacity(len);
 
     for idx in 0..len {
-        output.push(BasePatternIterator::new(idx + 1).take(len).collect());
+        output.push(
+            BasePatternIterator::new(idx + 1)
+                .take(len)
+                .skip_while(|v| *v == 0)
+                .collect(),
+        )
     }
 
     output
