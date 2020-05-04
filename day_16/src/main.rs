@@ -14,12 +14,22 @@ fn main() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-fn progress(input: &Vec<i32>) -> Vec<i32> {
-    (0..input.len())
-        .map(|idx| {
-            input
-                .iter()
-                .zip(BasePatternIterator::new(idx + 1).take(input.len()))
+fn calculate_progress_matrix(len: usize) -> Vec<Vec<i32>> {
+    let mut output = Vec::with_capacity(len);
+
+    for idx in 0..len {
+        output.push(BasePatternIterator::new(idx + 1).take(len).collect());
+    }
+
+    output
+}
+
+fn progress_with_matrix(input: &Vec<i32>, matrix: &Vec<Vec<i32>>) -> Vec<i32> {
+    matrix
+        .iter()
+        .map(|row| {
+            row.iter()
+                .zip(input.iter())
                 .map(|(x, y)| x * y)
                 .sum::<i32>()
                 .abs()
@@ -29,8 +39,10 @@ fn progress(input: &Vec<i32>) -> Vec<i32> {
 }
 
 fn progress_n(input: Vec<i32>, amount: u32) -> Vec<i32> {
+    let matrix = calculate_progress_matrix(input.len());
+
     (0..amount).fold(input, |acc, _| {
-        let next = progress(&acc);
+        let next = progress_with_matrix(&acc, &matrix);
         next
     })
 }
@@ -74,6 +86,11 @@ mod tests {
     fn test_base_pattern_iterator(i: usize, expected: Vec<i32>) {
         let out: Vec<i32> = BasePatternIterator::new(i).take(8).collect();
         assert_eq!(out, expected);
+    }
+
+    fn progress(input: &Vec<i32>) -> Vec<i32> {
+        let matrix = calculate_progress_matrix(input.len());
+        progress_with_matrix(&input, &matrix)
     }
 
     #[test]
@@ -166,5 +183,22 @@ mod tests {
             "69317163492948606335995924319873",
             vec![5, 2, 4, 3, 2, 1, 3, 3],
         );
+    }
+
+    #[test]
+    fn test_calculate_progress_matrix() {
+        let expected_result = vec![
+            vec![1, 0, -1, 0, 1, 0, -1, 0],
+            vec![0, 1, 1, 0, 0, -1, -1, 0],
+            vec![0, 0, 1, 1, 1, 0, 0, 0],
+            vec![0, 0, 0, 1, 1, 1, 1, 0],
+            vec![0, 0, 0, 0, 1, 1, 1, 1],
+            vec![0, 0, 0, 0, 0, 1, 1, 1],
+            vec![0, 0, 0, 0, 0, 0, 1, 1],
+            vec![0, 0, 0, 0, 0, 0, 0, 1],
+        ];
+
+        let result = calculate_progress_matrix(8);
+        assert_eq!(result, expected_result);
     }
 }
