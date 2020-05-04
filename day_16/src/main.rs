@@ -1,12 +1,13 @@
 use std::error::Error;
 use std::time::Instant;
 
-const BASE_PATTERN: [i16; 4] = [0, 1, 0, -1];
+const BASE_PATTERN: [NumType; 4] = [0, 1, 0, -1];
+type NumType = i16;
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let input = to_i16_array("59791911701697178620772166487621926539855976237879300869872931303532122404711706813176657053802481833015214226705058704017099411284046473395211022546662450403964137283487707691563442026697656820695854453826690487611172860358286255850668069507687936410599520475680695180527327076479119764897119494161366645257480353063266653306023935874821274026377407051958316291995144593624792755553923648392169597897222058613725620920233283869036501950753970029182181770358827133737490530431859833065926816798051237510954742209939957376506364926219879150524606056996572743773912030397695613203835011524677640044237824961662635530619875905369208905866913334027160178")?;
+    let input = to_num_type_array("59791911701697178620772166487621926539855976237879300869872931303532122404711706813176657053802481833015214226705058704017099411284046473395211022546662450403964137283487707691563442026697656820695854453826690487611172860358286255850668069507687936410599520475680695180527327076479119764897119494161366645257480353063266653306023935874821274026377407051958316291995144593624792755553923648392169597897222058613725620920233283869036501950753970029182181770358827133737490530431859833065926816798051237510954742209939957376506364926219879150524606056996572743773912030397695613203835011524677640044237824961662635530619875905369208905866913334027160178")?;
     let now = Instant::now();
-    let output: Vec<i16> = progress_n(input, 100).into_iter().take(8).collect();
+    let output: Vec<NumType> = progress_n(input, 100).into_iter().take(8).collect();
     let diff = Instant::now() - now;
 
     println!("Output {:?}, {}ms", output, diff.as_millis());
@@ -14,7 +15,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-fn calculate_progress_matrix(len: usize) -> Vec<Vec<i16>> {
+fn calculate_progress_matrix(len: usize) -> Vec<Vec<NumType>> {
     let mut output = Vec::with_capacity(len);
 
     for idx in 0..len {
@@ -29,21 +30,21 @@ fn calculate_progress_matrix(len: usize) -> Vec<Vec<i16>> {
     output
 }
 
-fn progress_with_matrix(input: &Vec<i16>, matrix: &Vec<Vec<i16>>) -> Vec<i16> {
+fn progress_with_matrix(input: &Vec<NumType>, matrix: &Vec<Vec<NumType>>) -> Vec<NumType> {
     matrix
         .iter()
         .map(|row| {
             row.iter()
                 .zip(input.iter())
                 .map(|(x, y)| x * y)
-                .sum::<i16>()
+                .sum::<NumType>()
                 .abs()
                 % 10
         })
         .collect()
 }
 
-fn progress_n(input: Vec<i16>, amount: u32) -> Vec<i16> {
+fn progress_n(input: Vec<NumType>, amount: u32) -> Vec<NumType> {
     let matrix = calculate_progress_matrix(input.len());
 
     (0..amount).fold(input, |acc, _| {
@@ -52,11 +53,11 @@ fn progress_n(input: Vec<i16>, amount: u32) -> Vec<i16> {
     })
 }
 
-fn to_i16_array<T: ToString>(input: T) -> Result<Vec<i16>, Box<dyn Error>> {
+fn to_num_type_array<T: ToString>(input: T) -> Result<Vec<NumType>, Box<dyn Error>> {
     let input_string = input.to_string();
     let mut output = Vec::with_capacity(input_string.len());
     for char in input_string.chars() {
-        output.push(char.to_digit(10).ok_or("Invalid char")? as i16);
+        output.push(char.to_digit(10).ok_or("Invalid char")? as NumType);
     }
 
     Ok(output)
@@ -74,7 +75,7 @@ impl BasePatternIterator {
 }
 
 impl Iterator for BasePatternIterator {
-    type Item = i16;
+    type Item = NumType;
 
     fn next(&mut self) -> Option<Self::Item> {
         let idx = (self.i / self.rep) % 4;
@@ -88,12 +89,12 @@ impl Iterator for BasePatternIterator {
 mod tests {
     use super::*;
 
-    fn test_base_pattern_iterator(i: usize, expected: Vec<i16>) {
+    fn test_base_pattern_iterator(i: usize, expected: Vec<NumType>) {
         let out: Vec<_> = BasePatternIterator::new(i).take(8).collect();
         assert_eq!(out, expected);
     }
 
-    fn progress(input: &Vec<i16>) -> Vec<i16> {
+    fn progress(input: &Vec<NumType>) -> Vec<NumType> {
         let matrix = calculate_progress_matrix(input.len());
         progress_with_matrix(&input, &matrix)
     }
@@ -150,16 +151,16 @@ mod tests {
     }
 
     #[test]
-    fn to_i16_array_03415518() {
+    fn to_num_type_array_03415518() {
         let input = "03415518";
         let expected_result = vec![0, 3, 4, 1, 5, 5, 1, 8];
 
-        let result = to_i16_array(input).expect("Should not fail");
+        let result = to_num_type_array(input).expect("Should not fail");
         assert_eq!(result, expected_result);
     }
 
-    fn test_progress_n_100(value: &str, expected_8: Vec<i16>) {
-        let input = to_i16_array(value).expect("Should not fail");
+    fn test_progress_n_100(value: &str, expected_8: Vec<NumType>) {
+        let input = to_num_type_array(value).expect("Should not fail");
         let expected_result = expected_8;
 
         let result: Vec<_> = progress_n(input, 100).into_iter().take(8).collect();
@@ -209,7 +210,7 @@ mod tests {
 
     #[test]
     fn part_2_03036732577212944063491565474664() {
-        let input = to_i16_array("03036732577212944063491565474664").expect("Should not fail");
+        let input = to_num_type_array("03036732577212944063491565474664").expect("Should not fail");
 
         let result: Vec<_> = progress_n(input, 10000).into_iter().take(8).collect();
         assert_eq!(result, vec![]);
